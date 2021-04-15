@@ -1,10 +1,15 @@
 import { Component } from '@angular/core';
-
+import { Cliente } from './clientes/cliente.model';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
 })
+
 export class AppComponent {
-  title = 'projeto-mean';
+  clientes: Cliente[] = [];
+
+  onClienteAdicionado(cliente: any) {
+    this.clientes = [...this.clientes, cliente];
+  }
 }
