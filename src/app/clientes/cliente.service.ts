@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { Cliente } from './cliente.model';
+import { HttpClient } from '@angular/common/http';
+import { stringify } from '@angular/compiler/src/util';
 
 // Há uma hierarquia de injetores de dependência e
 // podemos escolher a partir de qual componente a injeção ocorrerá, o que tem a ver com a
@@ -22,6 +24,13 @@ export class ClienteService {
   // um objeto “observável”, capaz de gerar eventos, que no Angular recebe o nome Subject.
   private listaClientesAtualizada = new Subject<Cliente[]>();
 
+  // cabe ao serviço de manipulação de clientes fazer as requisições HTTP que
+  // envolvem clientes.
+  constructor(private httpCliente: HttpClient) {
+
+  }
+
+  // (Inserindo clientes a partir da aplicação Angular)
   adicionarCliente(nome:string, fone:string, email: string) {
     const cliente: Cliente = {
       nome,
@@ -29,14 +38,29 @@ export class ClienteService {
       email
     };
 
-    // utilizamos seu método next cujo funcionamento é análogo ao emit de EventEmitter. Ele simboliza que um evento aconteceu.
-    // Assim, objetos observadores (Observable do pacote rxjs) podem reagir quando esse evento acontecer.
-    this.clientes.push(cliente)
-    this.listaClientesAtualizada.next( [...this.clientes] )
+    this.httpCliente.post<{mensagem: string}> ('http://localhost:3000/api/clientes', cliente)
+    .subscribe(
+        (dados) => {
+          console.log(dados.mensagem);
+          // utilizamos seu método next cujo funcionamento é análogo ao emit de EventEmitter. Ele simboliza que um evento aconteceu.
+          // Assim, objetos observadores (Observable do pacote rxjs) podem reagir quando esse evento acontecer.
+          this.clientes.push(cliente)
+          this.listaClientesAtualizada.next( [...this.clientes] )
+
+        }
+      )
   }
 
-  getClientes(): Cliente[] {
-    return [...this.clientes];
+  // cliente Http no método getClientes
+  getClientes(): void {
+    this.httpCliente.get<{mensagem: string, clientes: Cliente[]}>
+      ('http://localhost:3000/api/clientes')
+      .subscribe(
+        (dados) => {
+          this.clientes = dados.clientes;
+          this.listaClientesAtualizada.next([...this.clientes])
+        }
+      )
   }
 
   // Para permitir que componentes registrem observadores vinculados à lista atualizada do serviço,

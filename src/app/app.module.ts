@@ -2,6 +2,9 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { NgModule } from '@angular/core';
 
+// (Consumindo o Web Service com a aplicação Angular)
+import { HttpClientModule} from '@angular/common/http'
+
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,7 +34,8 @@ import { ClienteService } from './clientes/cliente.service';
     MatButtonModule,
     MatToolbarModule,
     MatExpansionModule,
-    BrowserAnimationsModule
+    BrowserAnimationsModule,
+    HttpClientModule
   ],
   providers: [
     ClienteService,
