@@ -12,6 +12,7 @@ import { Subscription, Observable } from 'rxjs';
   templateUrl: './cliente-lista.component.html',
   styleUrls: ['./cliente-lista.component.css'],
 })
+
 export class ClienteListaComponent implements OnInit {
   // @Input() clientes: Cliente[] = [];
   clientes: Cliente[] = [];
@@ -39,4 +40,15 @@ export class ClienteListaComponent implements OnInit {
   ngOnDestroy(): void {
     this.clientesSubscription.unsubscribe();
   }
+
+  /**
+   * Ela recebe o id e interage com o serviço de manipulação de clientes,
+   * solicitando que ele faça a requisição HTTP.
+   *
+   * Chamamos a função na cliente.service para realizar a chamada
+  */
+  onDelete(id: string): void {
+    this.clienteService.removerCliente(id);
+  }
+
 }

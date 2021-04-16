@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { Cliente } from './cliente.model';
 import { HttpClient } from '@angular/common/http';
-import { stringify } from '@angular/compiler/src/util';
+import { map } from 'rxjs/operators';
 
 // Há uma hierarquia de injetores de dependência e
 // podemos escolher a partir de qual componente a injeção ocorrerá, o que tem a ver com a
@@ -33,31 +33,82 @@ export class ClienteService {
   // (Inserindo clientes a partir da aplicação Angular)
   adicionarCliente(nome:string, fone:string, email: string) {
     const cliente: Cliente = {
+      id: '',
       nome,
       fone,
       email
     };
 
-    this.httpCliente.post<{mensagem: string}> ('http://localhost:3000/api/clientes', cliente)
+    this.httpCliente.post<{ mensagem: string, id: string }> ('http://localhost:3000/api/clientes', cliente)
     .subscribe(
         (dados) => {
-          console.log(dados.mensagem);
           // utilizamos seu método next cujo funcionamento é análogo ao emit de EventEmitter. Ele simboliza que um evento aconteceu.
           // Assim, objetos observadores (Observable do pacote rxjs) podem reagir quando esse evento acontecer.
+          cliente.id = dados.id
           this.clientes.push(cliente)
           this.listaClientesAtualizada.next( [...this.clientes] )
-
         }
       )
   }
 
-  // cliente Http no método getClientes
+  /**
+   * Envio da requisição para remover o cliente
+  */
+  removerCliente(id: string): void {
+    this.httpCliente.delete(`http://localhost:3000/api/clientes/${id}`).subscribe(() => {
+      console.log(`Cliente de id: ${id} removido.`);
+      /**
+       * A coleção exibida pela aplicação Angular não é atualizada após uma remoção. Para que a nova coleção possa ser vista,
+       * precisamos clicar em atualizar. Para que essa atualização ocorra automaticamente, iremos atualizar a coleção do serviço
+       * de manipulação de clientes (arquivo clientes.service.ts) removendo dela o cliente que já foi removido da base. Depois disso,
+       * enviamos uma notificação aos componentes interessados em alterações feitas na lista.
+       */
+
+      this.clientes = this.clientes.filter((cli) => {
+        return cli.id !== id; // filtramos da lista os clientes que não possuem o id removido
+      })
+
+      this.listaClientesAtualizada.next([...this.clientes])
+    })
+  }
+
+  /**
+   * Cliente Http no método getClientes
+   *
+   * Nessa função, passamos o pipe para realizar um mapeamento no momento em que pegamos os dados
+   * por conta de termos colocado na interface cliente somente 'id' e não '_id' como é no MongoDB
+   *
+   * Isso pode ser feito utilizando os mecanismos da API de Observables. Uma vez que tenhamos
+   * um resultado obtido por meio de um Observable, ele pode passar por uma lista de chamadas de
+   * funções (chamadas operadores) que podem realizar transformações arbitrárias. O método que
+   * permite esse encadeamento se chama pipe.
+   *
+   * Precisamos passar para ele uma função (que leva o nome de operador) que será executada uma vez que os dados
+   * tenham sido recebidos do servidor. Essa função se chama map.
+   * Ela recebe uma função que será responsável por fazer o mapeamento desejado.
+   */
   getClientes(): void {
-    this.httpCliente.get<{mensagem: string, clientes: Cliente[]}>
-      ('http://localhost:3000/api/clientes')
+    this.httpCliente.get<{mensagem: string, clientes: any }> ('http://localhost:3000/api/clientes')
+      .pipe(map((dados) => {
+
+        /**
+         * Os dados recebidos pela função passada como parâmetro para o operador map possuem uma
+         * coleção chamada clientes. Desejamos executar os itens desta coleção um a um, explicando que
+         * cada um deles deve ter seu campo _id mapeado para um novo campo, chamado id. Isso pode ser
+         * feito com a função map, própria de listas Javascript.
+        */
+        return dados.clientes.map((cliente: { _id: any; nome: any; fone: any; email: any; }) => {
+          return {
+            id: cliente._id,
+            nome: cliente.nome,
+            fone: cliente.fone,
+            email: cliente.email
+          }
+        })
+      }))
       .subscribe(
-        (dados) => {
-          this.clientes = dados.clientes;
+        (clientes) => {
+          this.clientes = clientes;
           this.listaClientesAtualizada.next([...this.clientes])
         }
       )
