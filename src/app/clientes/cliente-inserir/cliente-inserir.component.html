@@ -1,7 +1,8 @@
 <h2>Inserção de Clientes</h2>
 
 <mat-card>
-  <form (submit)="onSalvarCliente(formAddCliente)" #formAddCliente="ngForm">
+  <mat-spinner *ngIf="estaCarregando"></mat-spinner>
+  <form (submit)="onSalvarCliente(formAddCliente)" #formAddCliente="ngForm" *ngIf="!estaCarregando">
     <mat-form-field>
       <input type="text" matInput placeholder="Nome" required
       minlength="4" name="nome" ngModel #nome="ngModel" [ngModel]="cliente?.nome">

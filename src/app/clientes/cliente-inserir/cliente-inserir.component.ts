@@ -48,6 +48,9 @@ export class ClienteInserirComponent  implements OnInit {
   // @ts-ignore
   public cliente: Cliente;
 
+  // Variável utilizada para exibição do loading de carregamento
+  public estaCarregando: boolean = false;
+
   ngOnInit() {
     /**
      * Verificamos se o parametro do ID cliente existe, sendo então, uma edição
@@ -58,7 +61,9 @@ export class ClienteInserirComponent  implements OnInit {
         this.action = "editar";
         // @ts-ignore
         this.idCliente = paramMap.get('idCliente');
+        this.estaCarregando = true;
         this.clienteService.getCliente(this.idCliente).subscribe(dadosCli => {
+          this.estaCarregando = false;
           this.cliente = {
             id: dadosCli._id,
             nome: dadosCli.nome,
@@ -78,20 +83,10 @@ export class ClienteInserirComponent  implements OnInit {
 
   constructor( public clienteService: ClienteService, public route: ActivatedRoute ) {}
   onSalvarCliente(form: NgForm) {
-
-    // const cliente: Cliente = {
-    //   nome: form.value.nome,
-    //   fone: form.value.fone,
-    //   email: form.value.email,
-    // };
-
-    // console.log(cliente);
-
-    // // Emitimos o evento
-    // this.clienteAdicionado.emit(cliente);
-
     // Valida se o o formulário está válido
     if(form.invalid) return;
+
+    this.estaCarregando = true;
 
     // chamamos o adicionar cliente do service
     if(this.action === "criar")

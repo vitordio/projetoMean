@@ -18,6 +18,9 @@ export class ClienteListaComponent implements OnInit {
   clientes: Cliente[] = [];
   private clientesSubscription: Subscription = new Subscription();
 
+  // Variável utilizada para exibição do loading de carregamento
+  public estaCarregando: boolean = false;
+
   // Injetamos uma instância do serviço no componente responsável por exibir os clientes,
   constructor(public clienteService: ClienteService) {}
 
@@ -25,10 +28,12 @@ export class ClienteListaComponent implements OnInit {
   // Apenas chamamos o método para que a lista seja atualizada
   //  Registramos como observador da lista de clientes do serviço, assim que ela for atualizada ele será avisado.
   ngOnInit(): void {
+    this.estaCarregando = true;
     this.clienteService.getClientes();
     this.clientesSubscription = this.clienteService
       .getListaClientesAtualizadaObservable()
       .subscribe((clientes: Cliente[]) => {
+        this.estaCarregando = false;
         this.clientes = clientes;
       });
   }

@@ -3,6 +3,7 @@ import { Subject } from 'rxjs';
 import { Cliente } from './cliente.model';
 import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 // Há uma hierarquia de injetores de dependência e
 // podemos escolher a partir de qual componente a injeção ocorrerá, o que tem a ver com a
@@ -26,7 +27,7 @@ export class ClienteService {
 
   // cabe ao serviço de manipulação de clientes fazer as requisições HTTP que
   // envolvem clientes.
-  constructor(private httpCliente: HttpClient) {
+  constructor(private httpCliente: HttpClient, private router: Router) {
 
   }
 
@@ -108,6 +109,16 @@ export class ClienteService {
           cliente.id = dados.id
           this.clientes.push(cliente)
           this.listaClientesAtualizada.next( [...this.clientes] )
+
+          /**
+           * vamos usar o método navigate do roteador para levar o usuário para a
+           * página que desejamos.
+           *
+           * Ele recebe um vetor de parâmetros. Utilizaremos somente um elemento
+           * no vetor, indicando que o usuário deve ser levado para a raiz da aplicação.
+           * Ela está mapeada para o componente de listagem, por isso ele será renderizado no router-outlet.
+          */
+          this.router.navigate(['/']);
         }
       )
   }
@@ -150,6 +161,16 @@ export class ClienteService {
 
       this.clientes = copia;
       this.listaClientesAtualizada.next([...this.clientes]);
+
+      /**
+       * vamos usar o método navigate do roteador para levar o usuário para a
+       * página que desejamos.
+       *
+       * Ele recebe um vetor de parâmetros. Utilizaremos somente um elemento
+       * no vetor, indicando que o usuário deve ser levado para a raiz da aplicação.
+       * Ela está mapeada para o componente de listagem, por isso ele será renderizado no router-outlet.
+      */
+      this.router.navigate(['/']);
     }));
  }
 }
