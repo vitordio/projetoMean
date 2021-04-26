@@ -12,6 +12,9 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
+/** Importando o módulo de Rotas **/
+import { AppRoutingModule } from './app-routing.module';
+
 import { AppComponent } from './app.component';
 import { ClienteInserirComponent } from './clientes/cliente-inserir/cliente-inserir.component';
 import { CabecalhoComponent } from './cabecalho/cabecalho.component';
@@ -35,7 +38,8 @@ import { ClienteService } from './clientes/cliente.service';
     MatToolbarModule,
     MatExpansionModule,
     BrowserAnimationsModule,
-    HttpClientModule
+    HttpClientModule,
+    AppRoutingModule
   ],
   providers: [
     ClienteService,

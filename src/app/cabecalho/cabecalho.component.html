@@ -1,1 +1,8 @@
-<mat-toolbar color="primary">Clientes</mat-toolbar>
+<mat-toolbar color="primary">
+  <span><a routerLink="/">Clientes</a></span>
+  <span class="separator"></span>
+  <ul>
+    <!-- routerLinkActive mantém o botão em destaque quando acessamos a página -->
+    <li><a mat-button routerLinkActive="mat-accent" routerLink="/criar">Novo cliente</a></li>
+  </ul>
+</mat-toolbar>

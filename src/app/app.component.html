@@ -7,6 +7,12 @@
 
   <!-- Removemos o event binding já que não estamos mais passando clientes
   entre componentes, e sim pelo service. -->
-  <app-cliente-inserir></app-cliente-inserir>
-  <app-cliente-lista></app-cliente-lista>
+  <!-- <app-cliente-inserir></app-cliente-inserir>
+  <app-cliente-lista></app-cliente-lista> -->
+
+  <!-- Para utilizar o mecanismo de roteamento do Angular, especificamos um ponto em que os
+  componentes devem ser renderizados. Esse ponto chama-se router-outlet (outlet pode ser
+  traduzido como “saída”, “entrega”, “outorga”). Isso será feito no template do componente
+  principal da aplicação, definido no arquivo app.component.html. -->
+  <router-outlet></router-outlet>
 </main>

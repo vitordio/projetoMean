@@ -30,6 +30,67 @@ export class ClienteService {
 
   }
 
+  /**
+   * Cliente Http no método getClientes
+   *
+   * Nessa função, passamos o pipe para realizar um mapeamento no momento em que pegamos os dados
+   * por conta de termos colocado na interface cliente somente 'id' e não '_id' como é no MongoDB
+   *
+   * Isso pode ser feito utilizando os mecanismos da API de Observables. Uma vez que tenhamos
+   * um resultado obtido por meio de um Observable, ele pode passar por uma lista de chamadas de
+   * funções (chamadas operadores) que podem realizar transformações arbitrárias. O método que
+   * permite esse encadeamento se chama pipe.
+   *
+   * Precisamos passar para ele uma função (que leva o nome de operador) que será executada uma vez que os dados
+   * tenham sido recebidos do servidor. Essa função se chama map.
+   * Ela recebe uma função que será responsável por fazer o mapeamento desejado.
+   */
+   getClientes(): void {
+    this.httpCliente.get<{mensagem: string, clientes: any }> ('http://localhost:3000/api/clientes')
+      .pipe(map((dados) => {
+
+        /**
+         * Os dados recebidos pela função passada como parâmetro para o operador map possuem uma
+         * coleção chamada clientes. Desejamos executar os itens desta coleção um a um, explicando que
+         * cada um deles deve ter seu campo _id mapeado para um novo campo, chamado id. Isso pode ser
+         * feito com a função map, própria de listas Javascript.
+        */
+        return dados.clientes.map((cliente: { _id: any; nome: any; fone: any; email: any; }) => {
+          return {
+            id: cliente._id,
+            nome: cliente.nome,
+            fone: cliente.fone,
+            email: cliente.email
+          }
+        })
+      }))
+      .subscribe(
+        (clientes) => {
+          this.clientes = clientes;
+          this.listaClientesAtualizada.next([...this.clientes])
+        }
+      )
+  }
+
+  /**
+   * Função que retornará o cliente através do ID
+  */
+  getCliente(idCliente: string) {
+    // return {...this.clientes.find((cli) => cli.id === idCliente)}
+    return this.httpCliente.get<{
+      _id: string,
+      nome: string,
+      fone: string,
+      email: string
+    }>(`http://localhost:3000/api/clientes/${idCliente}`);
+  }
+
+  // Para permitir que componentes registrem observadores vinculados à lista atualizada do serviço,
+  // vamos definir um novo método que devolve um Observable.
+  getListaClientesAtualizadaObservable() {
+    return this.listaClientesAtualizada.asObservable();
+  }
+
   // (Inserindo clientes a partir da aplicação Angular)
   adicionarCliente(nome:string, fone:string, email: string) {
     const cliente: Cliente = {
@@ -73,50 +134,22 @@ export class ClienteService {
   }
 
   /**
-   * Cliente Http no método getClientes
-   *
-   * Nessa função, passamos o pipe para realizar um mapeamento no momento em que pegamos os dados
-   * por conta de termos colocado na interface cliente somente 'id' e não '_id' como é no MongoDB
-   *
-   * Isso pode ser feito utilizando os mecanismos da API de Observables. Uma vez que tenhamos
-   * um resultado obtido por meio de um Observable, ele pode passar por uma lista de chamadas de
-   * funções (chamadas operadores) que podem realizar transformações arbitrárias. O método que
-   * permite esse encadeamento se chama pipe.
-   *
-   * Precisamos passar para ele uma função (que leva o nome de operador) que será executada uma vez que os dados
-   * tenham sido recebidos do servidor. Essa função se chama map.
-   * Ela recebe uma função que será responsável por fazer o mapeamento desejado.
-   */
-  getClientes(): void {
-    this.httpCliente.get<{mensagem: string, clientes: any }> ('http://localhost:3000/api/clientes')
-      .pipe(map((dados) => {
+   * Edição do cliente
+  */
+ atualizarCliente(id: string, nome: string, fone: string, email: string) {
+    const cliente: Cliente = { id, nome, fone, email };
+    this.httpCliente.put(`http://localhost:3000/api/clientes/${id}`, cliente)
+    .subscribe((res => {
+      /**
+       * Uma vez que a aplicação Angular receba a resposta do servidor referente a uma atualização
+       * feita com sucesso, podemos atualizar a coleção mantida por ela localmente. Veja
+      */
+      const copia = [...this.clientes];
+      const indice = copia.findIndex(cli => cli.id === cliente.id);
+      copia[indice] = cliente;
 
-        /**
-         * Os dados recebidos pela função passada como parâmetro para o operador map possuem uma
-         * coleção chamada clientes. Desejamos executar os itens desta coleção um a um, explicando que
-         * cada um deles deve ter seu campo _id mapeado para um novo campo, chamado id. Isso pode ser
-         * feito com a função map, própria de listas Javascript.
-        */
-        return dados.clientes.map((cliente: { _id: any; nome: any; fone: any; email: any; }) => {
-          return {
-            id: cliente._id,
-            nome: cliente.nome,
-            fone: cliente.fone,
-            email: cliente.email
-          }
-        })
-      }))
-      .subscribe(
-        (clientes) => {
-          this.clientes = clientes;
-          this.listaClientesAtualizada.next([...this.clientes])
-        }
-      )
-  }
-
-  // Para permitir que componentes registrem observadores vinculados à lista atualizada do serviço,
-  // vamos definir um novo método que devolve um Observable.
-  getListaClientesAtualizadaObservable() {
-    return this.listaClientesAtualizada.asObservable();
-  }
+      this.clientes = copia;
+      this.listaClientesAtualizada.next([...this.clientes]);
+    }));
+ }
 }

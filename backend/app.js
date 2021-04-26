@@ -1,10 +1,17 @@
+require('dotenv').config();
 const express = require('express');
 
 const app = express();
 app.use(express.json());
 
+// Acessando as variáveis de ambiente
+const dbUser = process.env.MONGODB_USER;
+const dbPassword = process.env.MONGODB_PASSWORD;
+const dbCluster = process.env.MONGODB_CLUSTER;
+const dbName = process.env.MONGODB_DATABASE;
+
 const mongoose = require('mongoose');
-mongoose.connect('mongodb+srv://vitordio:Dudavitor00@cluster0.vhzwx.mongodb.net/appMean?retryWrites=true&w=majority')
+mongoose.connect(`mongodb+srv://${dbUser}:${dbPassword}@${dbCluster}.vhzwx.mongodb.net/${dbName}?retryWrites=true&w=majority`)
 .then(() => {
   console.log('Conexão OK');
 }).catch(() => {
@@ -21,7 +28,7 @@ const clientes = [];
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', "*");
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
   next();
 });
 
@@ -72,6 +79,48 @@ app.delete('/api/clientes/:id', (req, res, next) => {
   Cliente.deleteOne({ _id: req.params.id }).then((resultado) => {
     console.log(resultado);
     res.status(200).end();
+  })
+})
+
+/**
+ * Método para atualizar o cliente - passando o ID
+*/
+app.put('/api/clientes/:id', (req, res, next) => {
+  const cliente = new Cliente({
+    _id: req.params.id,
+    nome: req.body.nome,
+    fone: req.body.fone,
+    email: req.body.email
+  })
+
+  Cliente.updateOne({_id: req.params.id}, cliente)
+  .then((resultado) => {
+    console.log(resultado);
+  })
+
+  res.status(200).json({
+    mensagem: `Atualização do cliente de ID ${req.params.id} realizada com sucesso`
+  })
+})
+
+/**
+ * Na página de edição de clientes, quando clicamos em atualizar no navegador, a página
+ * reaparece com os campos todos vazios. Note, contudo ,que o id do cliente cujos dados estavam
+ * sendo exibidos ainda está disponível na URL. Isso quer dizer que podemos buscar seus dados no
+ * servidor usando seu id e manter seus dados na tela. Começamos implementando um novo
+ * endpoint no Back End.
+*/
+app.get('/api/clientes/:id', (req, res, next) => {
+  Cliente.findById(req.params.id).then(cli => {
+    if(cli)
+    {
+      res.status(200).json(cli);
+    } else
+    {
+      res.status(404).json({
+        mensagem: "Cliente não encontrado!"
+      })
+    }
   })
 })
 
