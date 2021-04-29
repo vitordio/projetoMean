@@ -1,16 +1,61 @@
 const express = require('express');
 const router = express.Router();
 
+const MIME_TYPE = require('../mimeType');
+
+/**
+ * (Lidando com a foto no servidor) com o Multer
+ *
+ * ele adiciona objetos file e/ou files à request. Deles podemos obter o(s) arquivo(s) enviados.
+*/
+const multer = require('multer');
+const armazenamento = multer.diskStorage({
+  /**
+   * Requisição, arquivo estraído e uma função a ser
+   * executada, capaz de indicar um erro ou devolver o
+   * diretório em que as fotos ficarão
+   */
+
+  destination: (req, file, callback) => {
+    // Validação do arquivo recebido, caso não seja uma foto, retornaremos um erro
+    const e = MIME_TYPE[file.mimetype] ? null : new Error('Extensão Inválida')
+
+    callback(e, 'backend/images');
+  },
+  filename: (req, file, callback) => {
+    // Construção do nome do arquivo
+    const nome = file.originalname.toLowerCase().split(" ").join("-");
+    const extensao = MIME_TYPE[file.mimetype];
+
+    callback(null, `${nome}-${Date.now()}.${extensao}`);
+  }
+})
+
+// Instanciamos a model do cliente
 const Cliente = require('../models/cliente');
 
 /**
  * Endpoint para inserção de novos clientes
+ *
+ * Chamamos multer entregando a ela o objeto armazenamento e, a seguir, chamamos single indicando que esperamos um único
+ * arquivo. O argumento entregue a single é o nome da propriedade a que o arquivo estará associado.
 */
-router.post('', (req, res, next) => {
+router.post('', multer({ storage: armazenamento }).single('image'), (req, res, next) => {
+  /**
+ * A seguir, montamos o endereço da foto. O primeiro passo é descobrir o protocolo (HTTP ou HTTPS) e o endereço do host.
+  * Ambas as informações estão disponíveis no objeto req, que representa a requisição.
+  *
+  * Com essas informações em mãos, montamos o endereço desejado incluindo o nome do arquivo que também se encontra na requisição.
+  * Note que as fotos estão originalmente armazenadas em backend/imagens.
+  *
+  * Iremos, contudo, fazer com que os clientes possam acessá-las diretamente de imagens, escondendo a existência da pasta backend.
+  */
+  const imageUrl = `${req.protocol}://${req.get('host')}`;
   const cliente = new Cliente({
     nome: req.body.nome,
     fone: req.body.fone,
-    email: req.body.email
+    email: req.body.email,
+    imageUrl: `${imageUrl}/imagens/${req.file.filename}`
   })
 
   // (Inserindo um cliente na base)
@@ -20,7 +65,13 @@ router.post('', (req, res, next) => {
   .then(clienteInserido => {
     res.status(201).json({
       mensagem: 'Cliente inserido',
-      id: clienteInserido._id
+      cliente: {
+        id: clienteInserido._id,
+        nome: clienteInserido.nome,
+        fone: clienteInserido.fone,
+        email: clienteInserido.email,
+        imageUrl: clienteInserido.imageUrl
+      }
     });
   });
 })
@@ -30,7 +81,6 @@ router.post('', (req, res, next) => {
 // por meio da qual podemos acessar a coleção de documentos.
 router.get('', (req, res) => {
   Cliente.find().then(documents => {
-    console.log(documents);
     res.status(200).json({
       mensagem: 'Tudo OK',
       clientes: documents
@@ -56,22 +106,29 @@ router.delete('/:id', (req, res, next) => {
 /**
  * Método para atualizar o cliente - passando o ID
 */
-router.put('/:id', (req, res, next) => {
+router.put('/:id', multer({ storage: armazenamento }).single('image'), (req, res, next) => {
+  let imageUrl = req.body.imageUrl; // tentamos pegar a URL já existente
+  if(req.file)
+  {
+    const url = `${req.protocol}://${req.get('host')}`;
+    imageUrl = `${url}/imagens/${req.file.filename}`;
+  }
+
   const cliente = new Cliente({
     _id: req.params.id,
     nome: req.body.nome,
     fone: req.body.fone,
-    email: req.body.email
+    email: req.body.email,
+    imageUrl
   })
 
   Cliente.updateOne({_id: req.params.id}, cliente)
   .then((resultado) => {
-    console.log(resultado);
+    res.status(200).json({
+      mensagem: `Atualização do cliente de ID ${req.params.id} realizada com sucesso`
+    })
   })
 
-  res.status(200).json({
-    mensagem: `Atualização do cliente de ID ${req.params.id} realizada com sucesso`
-  })
 })
 
 /**

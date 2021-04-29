@@ -4,6 +4,10 @@
     <mat-expansion-panel-header
       >Nome: {{ cliente.nome }}</mat-expansion-panel-header
     >
+    <div class="cliente-image">
+      <img [src]="cliente.imageUrl" [alt]="cliente.nome">
+    </div>
+
     <p>Fone: {{ cliente.fone }}</p>
     <hr />
     <p>Email: {{ cliente.email }}</p>

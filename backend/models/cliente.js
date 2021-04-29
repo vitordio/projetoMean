@@ -5,7 +5,8 @@ const mongoose = require('mongoose');
 const clienteSchema = mongoose.Schema({
   nome: { type: String, required: true},
   fone: { type: String, required: false, default: '0000000'},
-  email: { type: String, required: true }
+  email: { type: String, required: true },
+  imageUrl: { type: String, required: true }
 })
 
 // criamos o modelo associado ao Cliente e exportamos

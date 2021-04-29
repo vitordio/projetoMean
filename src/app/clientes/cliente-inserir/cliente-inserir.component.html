@@ -2,24 +2,49 @@
 
 <mat-card>
   <mat-spinner *ngIf="estaCarregando"></mat-spinner>
-  <form (submit)="onSalvarCliente(formAddCliente)" #formAddCliente="ngForm" *ngIf="!estaCarregando">
+  <form [formGroup]="form" (submit)="onSalvarCliente()" *ngIf="!estaCarregando">
+
+    <!-- Cada objeto FormControl do FormGroup precisa ser vinculado ao seu respectivo elemento
+    HTML explicitamente. Isso pode ser feito com a diretiva formControlName. -->
+
+    <!-- Como removemos as variáveis de template ao trocar o tipo do form, os componentes mat-error
+    já não podem acessá-las.
+
+    Ocorre que o objeto form possui um método chamado get que recebe o nome de um
+    FormControl e devolve o objeto associado a ele. A seguir, podemos acessar as propriedades
+    comuns de controles de form, tais quais invalid. -->
+
     <mat-form-field>
-      <input type="text" matInput placeholder="Nome" required
-      minlength="4" name="nome" ngModel #nome="ngModel" [ngModel]="cliente?.nome">
-      <mat-error *ngIf="nome.invalid">Digite um nome válido</mat-error>
+      <input type="text" matInput
+      placeholder="Nome" required minlength="4"
+      name="nome" formControlName="nome">
+      <mat-error *ngIf="form.get('nome')">Digite um nome válido</mat-error>
     </mat-form-field>
 
     <mat-form-field>
-      <input type="text" matInput placeholder="Fone" required
-      name="fone" ngModel #fone="ngModel" [ngModel]="cliente?.fone">
-      <mat-error *ngIf="fone.invalid">Digite um telefone válido</mat-error>
+      <input type="text" matInput
+      placeholder="Fone" required
+      name="fone" formControlName="fone">
+      <mat-error *ngIf="form.get('fone')">Digite um telefone válido</mat-error>
     </mat-form-field>
 
     <mat-form-field>
-      <input type="email" matInput placeholder="Email" required
-      name="email" ngModel #email="ngModel" [ngModel]="cliente?.email">
-      <mat-error *ngIf="email.invalid">Digite um email válido</mat-error>
+      <input type="email" matInput
+      placeholder="Email" required
+      name="email" formControlName="email">
+      <mat-error *ngIf="form.get('fone')">Digite um email válido</mat-error>
     </mat-form-field>
+
+    <!-- (Adicionando um botão para upload de imagens) -->
+    <div>
+      <button mat-stroked-button class="mb-1" type="button" (click)="selecionaArquivo.click()">Selecionar Imagem</button>
+      <input type="file" (change)="onImageSelecionada($event)" #selecionaArquivo>
+    </div>
+
+    <!-- Pré exibição da imagem carregada -->
+    <div *ngIf="previewImage && form.get('image')?.valid" class="imagem-preview">
+      <img [src]="previewImage"  [alt]="form.value.nome">
+    </div>
 
     <button color='accent' mat-raised-button>Salvar Cliente</button>
   </form>

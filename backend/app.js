@@ -1,6 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 
+// Usaremos o path para realizar o mapeamento da rota das imagens
+const path = require('path')
+
+const mongoose = require('mongoose');
+
 const app = express();
 app.use(express.json());
 
@@ -13,7 +18,6 @@ const dbPassword = process.env.MONGODB_PASSWORD;
 const dbCluster = process.env.MONGODB_CLUSTER;
 const dbName = process.env.MONGODB_DATABASE;
 
-const mongoose = require('mongoose');
 mongoose.connect(`mongodb+srv://${dbUser}:${dbPassword}@${dbCluster}.vhzwx.mongodb.net/${dbName}?retryWrites=true&w=majority`)
 .then(() => {
   console.log('Conexão OK');
@@ -21,12 +25,9 @@ mongoose.connect(`mongodb+srv://${dbUser}:${dbPassword}@${dbCluster}.vhzwx.mongo
   console.log('Conexão NOK');
 })
 
-// Importação do Schema
-const Cliente = require('./models/cliente')
-const clientes = [];
-
 // Vamos especificar uma função que executa antes de a requisição ser atendida.
 // Ela se encarrega de ajustar os cabeçalhos da resposta.
+app.use('/imagens', express.static(path.join('backend/images')));
 app.use ((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', "*");
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type,Accept');
@@ -34,12 +35,10 @@ app.use ((req, res, next) => {
   next();
 });
 
-// app.use('/api/clientes', (req, res) => {
-//   res.status(200).json({
-//     mensagem: "Tudo OK",
-//     clientes
-//   })
-// })
-
 app.use('/api/clientes', clienteRoutes);
+
+// Importação do Schema
+const Cliente = require('./models/cliente')
+const clientes = [];
+
 module.exports = app;

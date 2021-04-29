@@ -6,3 +6,13 @@
 mat-spinner {
   margin: auto;
 }
+
+div.cliente-image {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+div.cliente-image > img {
+  max-width: 50%;
+}

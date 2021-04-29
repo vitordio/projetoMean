@@ -6,3 +6,21 @@ input {
 mat-spinner {
   margin: auto;
 }
+
+.mb-1 {
+  margin-bottom: 1rem;
+}
+
+input[type="file"] {
+  visibility: hidden;
+}
+
+
+div.imagem-preview {
+  height: 5rem;
+  margin: 1rem 0;
+}
+
+div.imagem-preview img {
+  height: 100%;
+}

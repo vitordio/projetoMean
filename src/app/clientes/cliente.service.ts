@@ -56,12 +56,13 @@ export class ClienteService {
          * cada um deles deve ter seu campo _id mapeado para um novo campo, chamado id. Isso pode ser
          * feito com a função map, própria de listas Javascript.
         */
-        return dados.clientes.map((cliente: { _id: any; nome: any; fone: any; email: any; }) => {
+        return dados.clientes.map((cliente: { _id: any; nome: any; fone: any; email: any; imageUrl: any; }) => {
           return {
             id: cliente._id,
             nome: cliente.nome,
             fone: cliente.fone,
-            email: cliente.email
+            email: cliente.email,
+            imageUrl: cliente.imageUrl
           }
         })
       }))
@@ -77,12 +78,12 @@ export class ClienteService {
    * Função que retornará o cliente através do ID
   */
   getCliente(idCliente: string) {
-    // return {...this.clientes.find((cli) => cli.id === idCliente)}
     return this.httpCliente.get<{
       _id: string,
       nome: string,
       fone: string,
-      email: string
+      email: string,
+      imageUrl: string
     }>(`http://localhost:3000/api/clientes/${idCliente}`);
   }
 
@@ -92,21 +93,34 @@ export class ClienteService {
     return this.listaClientesAtualizada.asObservable();
   }
 
-  // (Inserindo clientes a partir da aplicação Angular)
-  adicionarCliente(nome:string, fone:string, email: string) {
-    const cliente: Cliente = {
-      id: '',
-      nome,
-      fone,
-      email
-    };
+  /**
+   * Inserindo clientes
+   * @param nome
+   * @param fone
+   * @param email
+   * @param image
+   */
+  adicionarCliente(nome:string, fone:string, email: string, image: File) {
+    // Deixaremos de enviar o objeto cliente ao servidor, e enviamos um FormData
+    const dadosCliente = new FormData();
+    dadosCliente.append('nome', nome);
+    dadosCliente.append('fone', fone);
+    dadosCliente.append('email', email);
+    dadosCliente.append('image', image);
 
-    this.httpCliente.post<{ mensagem: string, id: string }> ('http://localhost:3000/api/clientes', cliente)
+    this.httpCliente.post<{ mensagem: string, cliente: Cliente }> ('http://localhost:3000/api/clientes', dadosCliente)
     .subscribe(
         (dados) => {
           // utilizamos seu método next cujo funcionamento é análogo ao emit de EventEmitter. Ele simboliza que um evento aconteceu.
           // Assim, objetos observadores (Observable do pacote rxjs) podem reagir quando esse evento acontecer.
-          cliente.id = dados.id
+          const cliente: Cliente = {
+            id: dados.cliente.id,
+            nome: nome,
+            fone: fone,
+            email: email,
+            imageUrl: dados.cliente.imageUrl
+          };
+
           this.clientes.push(cliente)
           this.listaClientesAtualizada.next( [...this.clientes] )
 
@@ -146,19 +160,57 @@ export class ClienteService {
 
   /**
    * Edição do cliente
+   *
   */
- atualizarCliente(id: string, nome: string, fone: string, email: string) {
-    const cliente: Cliente = { id, nome, fone, email };
-    this.httpCliente.put(`http://localhost:3000/api/clientes/${id}`, cliente)
+ atualizarCliente(id: string, nome: string, fone: string, email: string, image: File | string) {
+    // const cliente: Cliente = { id, nome, fone, email, imageUrl: '' };
+
+    /**
+     * O método atualizarCliente precisa decidir a forma como enviará os dados para o Back End.
+     *
+     * Isso dependerá do tipo do parâmetro imagem. Se ele for um arquivo, é preciso construir um
+     * objeto do tipo FormData. Caso contrário, enviamos um objeto JSON comum.
+     *
+     * Note que esperamos obter, como parte da resposta, a URL da imagem, a qual ainda precisa ser tratada.
+    */
+    let clienteData: Cliente | FormData;
+
+    if(typeof(image) === 'object')
+    {
+      clienteData = new FormData();
+      clienteData.append('nome', nome);
+      clienteData.append('fone', fone);
+      clienteData.append('email', email);
+      clienteData.append('image', image, nome);//chave, foto e nome para o arquivo
+    } else {
+      // envio do JSON comum
+      clienteData = {
+        id: id,
+        nome: nome,
+        fone: fone,
+        email: email,
+        imageUrl: image
+      }
+    }
+
+    this.httpCliente.put(`http://localhost:3000/api/clientes/${id}`, clienteData)
     .subscribe((res => {
       /**
        * Uma vez que a aplicação Angular receba a resposta do servidor referente a uma atualização
        * feita com sucesso, podemos atualizar a coleção mantida por ela localmente. Veja
       */
       const copia = [...this.clientes];
-      const indice = copia.findIndex(cli => cli.id === cliente.id);
-      copia[indice] = cliente;
+      const indice = copia.findIndex(cli => cli.id === id);
 
+      const cliente: Cliente = {
+        id,
+        nome,
+        email,
+        fone,
+        imageUrl: ""
+      }
+
+      copia[indice] = cliente;
       this.clientes = copia;
       this.listaClientesAtualizada.next([...this.clientes]);
 
