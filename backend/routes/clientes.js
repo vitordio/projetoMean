@@ -80,12 +80,51 @@ router.post('', multer({ storage: armazenamento }).single('image'), (req, res, n
 // Para a busca, usaremos o método estático find do modelo Cliente. Ele devolve uma promise
 // por meio da qual podemos acessar a coleção de documentos.
 router.get('', (req, res) => {
-  Cliente.find().then(documents => {
-    res.status(200).json({
-      mensagem: 'Tudo OK',
-      clientes: documents
+  /**
+   * O método get do Back End irá utilizar os parâmetros pagesize e page para especificar ao
+   * MongoDB exatamente quais dados devem ser traziados. Se cada página exibe pagesize itens e
+   * desejamos os itens da página page, então:
+   *  - Desejamos ignorar (skip) os primeiros pagesize * ( page – 1) itens
+   *  - Desejamos limitar a busca a page itens.
+  */
+  const pageSize = +req.query.pageSize;
+  const page = +req.query.page;
+
+  const consulta = Cliente.find(); // só executa quando chamamos o then
+
+  /**
+   * (Exibindo a quantidade correta de clientes no elemento de paginação)
+   * precisamos fazer com que a busca inclua a quantidade de itens, que pode ser
+   * encontrada utilizando-se o método count. No momento, já executamos um método (find) para
+   * buscar todos os clientes. Para usar o método count, iremos encadear o uso de promises.
+   *
+   * Executamos uma consulta que devolve uma Promise e, com o resultado em mãos, executamos
+   * outra consulta que devolve outra Promise. E assim por diante.
+   */
+  let clientesEncontrados;
+
+  if(pageSize && page)
+  {
+    consulta
+    .skip(pageSize * (page - 1))
+    .limit(pageSize);
+  }
+
+  consulta.then(documents => {
+      clientesEncontrados = documents;
+
+      // devolve uma Promise, tratada como o próximo then
+      return Cliente.count();
     })
-  })
+    .then((count) => {
+      res.status(200).json({
+        mensagem: 'Tudo OK',
+        clientes: clientesEncontrados,
+
+        // devolvemos o count para o Front
+        maxClientes: count
+      })
+    })
 })
 
 /**

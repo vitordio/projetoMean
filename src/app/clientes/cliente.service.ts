@@ -19,11 +19,17 @@ import { Router } from '@angular/router';
 export class ClienteService {
   private clientes : Cliente[] = [];
 
-  // No futuro, a lista de clientes será obtida a partir de um servidor remoto. Idealmente, as
-  // operações que a envolvem devem ser realizadas de maneira assíncrona. Para isso, vamos aplicar
-  // a API de Observables do pacote rxjs. No arquivo clientes.service.ts, começamos instanciando
-  // um objeto “observável”, capaz de gerar eventos, que no Angular recebe o nome Subject.
-  private listaClientesAtualizada = new Subject<Cliente[]>();
+  /**
+   *
+   * Quando uma busca pela lista de clientes termina, o serviço se encarrega de notificar os seus
+   * observadores - os componentes Angular interessados na lista. No momento, a notificação
+   * envolve somente a lista. Contudo, a quantidade de clientes existentes na base também é de
+   * interesse.
+   *
+   * Assim, precisamos alterar o tipo com o qual o Subject lida, que passará a ser um objeto
+   * JSON que contém a lista de clientes e o número de clientes como suas propriedades.
+   */
+  private listaClientesAtualizada = new Subject<{ clientes: Cliente[], maxClientes: number } >();
 
   // cabe ao serviço de manipulação de clientes fazer as requisições HTTP que
   // envolvem clientes.
@@ -46,30 +52,42 @@ export class ClienteService {
    * tenham sido recebidos do servidor. Essa função se chama map.
    * Ela recebe uma função que será responsável por fazer o mapeamento desejado.
    */
-   getClientes(): void {
-    this.httpCliente.get<{mensagem: string, clientes: any }> ('http://localhost:3000/api/clientes')
+   getClientes(pageSize: number, page:number): void {
+    const params = `?pageSize=${pageSize}&page=${page}`;
+    this.httpCliente.get<{mensagem: string, clientes: any, maxClientes: number }> (`http://localhost:3000/api/clientes${params}`)
       .pipe(map((dados) => {
 
         /**
-         * Os dados recebidos pela função passada como parâmetro para o operador map possuem uma
-         * coleção chamada clientes. Desejamos executar os itens desta coleção um a um, explicando que
-         * cada um deles deve ter seu campo _id mapeado para um novo campo, chamado id. Isso pode ser
-         * feito com a função map, própria de listas Javascript.
-        */
-        return dados.clientes.map((cliente: { _id: any; nome: any; fone: any; email: any; imageUrl: any; }) => {
-          return {
-            id: cliente._id,
-            nome: cliente.nome,
-            fone: cliente.fone,
-            email: cliente.email,
-            imageUrl: cliente.imageUrl
-          }
-        })
+         * dados representa aquilo que o Back End entrega para o Front End.
+         * Ou seja, um objeto JSON contendo uma mensagem, uma lista de clientes e, agora, o número de clientes.
+         *
+         * Lembre-se que utilizamos a função map para explicar que, dado um objeto desse tipo, desejamos extrair somente a coleção de clientes, que
+         * deve ser o resultado do método. Contudo, agora também desejamos que o número de clientes
+         * faça parte do resultado do método. Para isso, basta ajustar o mapeamento: o objeto resultante
+         * deixa de ser uma única lista de clientes e passa a ser um objeto JSON que contém a lista de
+         * clientes e, ainda, o número de clientes.
+         */
+
+        return {
+          clientes: dados.clientes.map((cliente: { _id: any; nome: any; fone: any; email: any; imageUrl: any; }) => {
+            return {
+              id: cliente._id,
+              nome: cliente.nome,
+              fone: cliente.fone,
+              email: cliente.email,
+              imageUrl: cliente.imageUrl
+            }
+          }),
+          maxClientes: dados.maxClientes
+        }
       }))
       .subscribe(
-        (clientes) => {
-          this.clientes = clientes;
-          this.listaClientesAtualizada.next([...this.clientes])
+        (dados) => {
+          this.clientes = dados.clientes;
+          this.listaClientesAtualizada.next({
+            clientes: [...this.clientes],
+            maxClientes: dados.maxClientes
+          })
         }
       )
   }
@@ -111,27 +129,6 @@ export class ClienteService {
     this.httpCliente.post<{ mensagem: string, cliente: Cliente }> ('http://localhost:3000/api/clientes', dadosCliente)
     .subscribe(
         (dados) => {
-          // utilizamos seu método next cujo funcionamento é análogo ao emit de EventEmitter. Ele simboliza que um evento aconteceu.
-          // Assim, objetos observadores (Observable do pacote rxjs) podem reagir quando esse evento acontecer.
-          const cliente: Cliente = {
-            id: dados.cliente.id,
-            nome: nome,
-            fone: fone,
-            email: email,
-            imageUrl: dados.cliente.imageUrl
-          };
-
-          this.clientes.push(cliente)
-          this.listaClientesAtualizada.next( [...this.clientes] )
-
-          /**
-           * vamos usar o método navigate do roteador para levar o usuário para a
-           * página que desejamos.
-           *
-           * Ele recebe um vetor de parâmetros. Utilizaremos somente um elemento
-           * no vetor, indicando que o usuário deve ser levado para a raiz da aplicação.
-           * Ela está mapeada para o componente de listagem, por isso ele será renderizado no router-outlet.
-          */
           this.router.navigate(['/']);
         }
       )
@@ -140,22 +137,8 @@ export class ClienteService {
   /**
    * Envio da requisição para remover o cliente
   */
-  removerCliente(id: string): void {
-    this.httpCliente.delete(`http://localhost:3000/api/clientes/${id}`).subscribe(() => {
-      console.log(`Cliente de id: ${id} removido.`);
-      /**
-       * A coleção exibida pela aplicação Angular não é atualizada após uma remoção. Para que a nova coleção possa ser vista,
-       * precisamos clicar em atualizar. Para que essa atualização ocorra automaticamente, iremos atualizar a coleção do serviço
-       * de manipulação de clientes (arquivo clientes.service.ts) removendo dela o cliente que já foi removido da base. Depois disso,
-       * enviamos uma notificação aos componentes interessados em alterações feitas na lista.
-       */
-
-      this.clientes = this.clientes.filter((cli) => {
-        return cli.id !== id; // filtramos da lista os clientes que não possuem o id removido
-      })
-
-      this.listaClientesAtualizada.next([...this.clientes])
-    })
+  removerCliente (id: string){
+    return this.httpCliente.delete(`http://localhost:3000/api/clientes/${id}`);
   }
 
   /**
@@ -195,33 +178,6 @@ export class ClienteService {
 
     this.httpCliente.put(`http://localhost:3000/api/clientes/${id}`, clienteData)
     .subscribe((res => {
-      /**
-       * Uma vez que a aplicação Angular receba a resposta do servidor referente a uma atualização
-       * feita com sucesso, podemos atualizar a coleção mantida por ela localmente. Veja
-      */
-      const copia = [...this.clientes];
-      const indice = copia.findIndex(cli => cli.id === id);
-
-      const cliente: Cliente = {
-        id,
-        nome,
-        email,
-        fone,
-        imageUrl: ""
-      }
-
-      copia[indice] = cliente;
-      this.clientes = copia;
-      this.listaClientesAtualizada.next([...this.clientes]);
-
-      /**
-       * vamos usar o método navigate do roteador para levar o usuário para a
-       * página que desejamos.
-       *
-       * Ele recebe um vetor de parâmetros. Utilizaremos somente um elemento
-       * no vetor, indicando que o usuário deve ser levado para a raiz da aplicação.
-       * Ela está mapeada para o componente de listagem, por isso ele será renderizado no router-outlet.
-      */
       this.router.navigate(['/']);
     }));
  }

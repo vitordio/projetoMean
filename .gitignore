@@ -47,3 +47,6 @@ Thumbs.db
 
 # Ignorando o .env
 .env
+
+# Pasta images
+*images
